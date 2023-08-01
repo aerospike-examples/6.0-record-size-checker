@@ -9,7 +9,7 @@ namespace = "test"
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10
-host = "k8s-virt-2"
+host = "127.0.0.1"
 port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
