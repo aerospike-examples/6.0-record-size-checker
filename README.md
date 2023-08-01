@@ -5,6 +5,7 @@ Simple python script to help detect records that potentially may be too big when
 ```bash
 # Define globals
 namespace = "test"
+# If setName is an empty string then it will default to scanning all sets in the namespace
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10

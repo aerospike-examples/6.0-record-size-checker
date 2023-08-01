@@ -15,6 +15,8 @@ port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
 logLevel = logging.INFO # logging.DEBUG
+# If dry_run is True then the script will only return the count of master objects on each node
+# that are greater than or equal to the DeviceSize() filter applied
 dry_run = True
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logLevel)
