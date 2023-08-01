@@ -27,7 +27,7 @@ config = {
         'auth_mode': aerospike.AUTH_INTERNAL
     },
     # Change the below to True if needing to use alternate-access-address
-    'use_services_alternate': True
+    'use_services_alternate': False
 }
 
 
