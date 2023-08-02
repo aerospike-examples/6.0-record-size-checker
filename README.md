@@ -2,7 +2,7 @@
 Simple python script to help detect records that potentially may be too big when upgrading from servers pre-6.0 to servers 6.0+.
 
 ## Tunable Variables
-```bash
+```python
 # Define globals
 namespace = "test"
 # If setName is an empty string then it will default to scanning all sets in the namespace
