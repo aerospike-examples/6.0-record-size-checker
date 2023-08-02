@@ -3,14 +3,15 @@ from aerospike_helpers import expressions as exp
 from aerospike_helpers.operations import operations
 from aerospike import exception as ex
 import logging
+import sys
 
 # Define globals
-namespace = "test"
+namespace = "bar"
 # If setName is an empty string then it will default to scanning all sets in the namespace
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10
-host = "127.0.0.1"
+host = "34.173.191.40"
 port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
@@ -19,8 +20,7 @@ logLevel = logging.INFO # logging.DEBUG
 # that are greater than or equal to the DeviceSize() filter applied
 dry_run = True
 
-logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logLevel)
-
+# Client config and policies
 config = {
     'hosts': [ (host, port) ],
     'user': 'admin',
@@ -30,8 +30,10 @@ config = {
         'auth_mode': aerospike.AUTH_INTERNAL
     },
     # Change the below to True if needing to use alternate-access-address
-    'use_services_alternate': False
+    'use_services_alternate': True
 }
+
+logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logLevel)
 
 
 # Establishes a connection to the server
@@ -52,9 +54,11 @@ def display_key(rec):
     ns, setname, pk, digest = k[0], k[1], k[2], k[3].hex()
     compression_ratios[current_node]["count"] += 1
     try:
-        # if dry_run is True it will only return the object count and NOT touch the records
+        # if dry_run is True it will only return the digests and object count at the end. Will NOT touch the records
         if not dry_run:
             client.touch(k,0)
+        else:
+            logging.info("Namespace: {0}, Set: {1}, Primary Key: {2}, Digest: {3}".format(ns, setname, pk, digest))
     except ex.AerospikeError as e:
         if e.code == 13:
             logging.warning("Record too big: Namespace: {0}, Set: {1}, Primary Key: {2}, Digest: {3}".format(ns, setname, pk, digest))
@@ -64,6 +68,9 @@ def display_key(rec):
             exit(1)
         else:
             logging.error("{0} [{1}]".format(e.msg, e.code))
+    except KeyboardInterrupt:
+        logging.warning("Detected interrupt signal (CTRL+C) -- exiting.")
+        sys.exit(1)
 
 # Get write-block-size
 all_conf = client.info_all("get-config:context=namespace;id={0}".format(namespace))
@@ -117,8 +124,9 @@ scan_opts = {
     'nobins': True
 }
 
-for node in list(compression_ratios.keys()):
-    try:
+
+try:
+    for node in list(compression_ratios.keys()):
         current_node = node
         logging.info("Scanning node: {0}".format(node))
         if compression_ratios[node]["isCompressionEnabled"] == True:
@@ -140,10 +148,10 @@ for node in list(compression_ratios.keys()):
             }
             logging.info("Checking for records of compressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts,  nodename=node)
-    except ex.InvalidNodeError:
-        logging.error("Unable to scan node {0} because it's not active. Is it quiesced?".format(node))
-    except Exception as e:
-        logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
+except ex.InvalidNodeError:
+    logging.error("Unable to scan node {0} because it's not active. Is it quiesced?".format(node))
+except Exception as e:
+    logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
 
 
 
