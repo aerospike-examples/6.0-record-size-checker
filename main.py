@@ -3,7 +3,6 @@ from aerospike_helpers import expressions as exp
 from aerospike_helpers.operations import operations
 from aerospike import exception as ex
 import logging
-import sys
 
 # Define globals
 namespace = "bar"
@@ -11,7 +10,7 @@ namespace = "bar"
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10
-host = "34.173.191.40"
+host = "127.0.0.1"
 port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
@@ -70,7 +69,7 @@ def display_key(rec):
             logging.error("{0} [{1}]".format(e.msg, e.code))
     except KeyboardInterrupt:
         logging.warning("Detected interrupt signal (CTRL+C) -- exiting.")
-        sys.exit(1)
+        exit(2)
 
 # Get write-block-size
 all_conf = client.info_all("get-config:context=namespace;id={0}".format(namespace))
@@ -98,7 +97,7 @@ for node, config in namespace_stats.items():
             if mrs != (compression_ratios[node]["wbs"] - 16) and not dry_run:
                 logging.warning("max-record-size is not set to (write-block-size - 16 bytes) for node {0} (write-block-size: {1}, max-record-size: {2})".format(node, compression_ratios[node]["wbs"], mrs))
                 logging.warning("max-record-size needs to be configured to successfully identify potential large records.")
-                exit(1)
+                exit(3)
             compression_ratios[node]["max-record-size"] = mrs
         elif "device_compression_ratio" in match:
             compression_ratios[node]["isCompressionEnabled"] = True
