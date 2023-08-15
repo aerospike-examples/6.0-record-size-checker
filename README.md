@@ -33,10 +33,14 @@ config = {
 ```
 
 ## Running
-Ensure the [aerospike-client-python](https://github.com/aerospike/aerospike-client-python) library is installed:
+Ensure version 6.1.2 of the [aerospike-client-python](https://github.com/aerospike/aerospike-client-python) library is installed:
 ```bash
-pip3 install aerospike
+pip3 install -r requirements.txt
 ```
+
+> [!NOTE]
+> Aerospike Python client 6.1.2 only runs on amd64 CPUs and Python 3.6 through 3.9.
+
 
 Execute the python script:
 ```bash

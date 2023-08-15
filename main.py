@@ -1,16 +1,17 @@
 import aerospike
+from aerospike import predexp
 from aerospike_helpers import expressions as exp
 from aerospike_helpers.operations import operations
 from aerospike import exception as ex
 import logging
 
 # Define globals
-namespace = "bar"
+namespace = "test"
 # If setName is an empty string then it will default to scanning all sets in the namespace
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10
-host = "127.0.0.1"
+host = "host.docker.internal"
 port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
@@ -33,7 +34,6 @@ config = {
 }
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logLevel)
-
 
 # Establishes a connection to the server
 client = aerospike.client(config).connect()
@@ -95,7 +95,8 @@ for node, config in namespace_stats.items():
         if "max-record-size" in match:
             mrs = int(match.split('=')[1])
             if mrs != (compression_ratios[node]["wbs"] - 16) and not dry_run:
-                logging.warning("max-record-size is not set to (write-block-size - 16 bytes) for node {0} (write-block-size: {1}, max-record-size: {2})".format(node, compression_ratios[node]["wbs"], mrs))
+                logging.warning("max-record-size is not set to (write-block-size - 16 bytes) for node {0} (write-block-size: {1}, max-record-size: 
+{2})".format(node, compression_ratios[node]["wbs"], mrs))
                 logging.warning("max-record-size needs to be configured to successfully identify potential large records.")
                 exit(3)
             compression_ratios[node]["max-record-size"] = mrs
@@ -112,7 +113,8 @@ if areValuesInSync([wbs["wbs"] for wbs in compression_ratios.values()]) != True:
     logging.warning(compression_ratios)
 
 # Check if max-record-size is set and in sync across nodes
-if areValuesInSync([mrs["max-record-size"] for mrs in compression_ratios.values()]) != True:
+# Server 4.9 will not have max-record-size, it is introduced in server 5.7, so .get() is used
+if areValuesInSync([mrs.get("max-record-size") for mrs in compression_ratios.values()]) != True:
     logging.warning("max-record-size are not uniform across nodes!")
 else:
     logging.debug("Compression ratios per node: {0}".format(compression_ratios))
@@ -123,28 +125,59 @@ scan_opts = {
     'nobins': True
 }
 
+def get_server_version(node_name):
+    versioninfo = client.info_random_node("build")
+    version_str = versioninfo.strip("build\t \n")
+    versionlist = version_str.split(".")
+    major = int(versionlist[0])
+    minor = int(versionlist[1])
+    logging.info("Node {0} running Aerospike server version: {1}.{2}".format(node_name, major, minor))
+    return (major, minor)
+
+def server_supports_expressions(server_version):
+    version = server_version
+    start_of_expression_support = (5, 2)
+    res = (version) > start_of_expression_support
+    logging.info("Node supports expressions: {0}".format(res))
+    return res
+
+def expression_filter_policy(bs, use_expressions):
+    too_big_exp = None
+    policy = dict()
+
+    if use_expressions:
+        too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
+        policy["expressions"] = too_big_exp
+    else:
+        too_big_predexp = [
+            predexp.rec_device_size(),
+            predexp.integer_value(int(bs)),
+            predexp.integer_greatereq()
+        ]
+        policy["predexp"] = too_big_predexp
+    
+    return policy
 
 try:
     for node in list(compression_ratios.keys()):
         current_node = node
         logging.info("Scanning node: {0}".format(node))
         if compression_ratios[node]["isCompressionEnabled"] == True:
-            logging.info("Node {0} has compression enabled with a ratio of {1} and write-block-size={2}".format(node, compression_ratios[node]["compression_ratio"], compression_ratios[node]["wbs"]))
+            logging.info("Node {0} has compression enabled with a ratio of {1} and write-block-size={2}".format(node, 
+compression_ratios[node]["compression_ratio"], compression_ratios[node]["wbs"]))
             # Calculate rough threshold for compressed records that may exceed write-block-size
             bs = (compression_ratios[node]["wbs"] * compression_ratios[node]["compression_ratio"]) - (compression_ratios[node]["wbs"] * threshold)
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
-            scan_policy = {
-                "expressions": too_big_exp
-            }
+            server_version = get_server_version(node)
+            supports_expressions = server_supports_expressions(server_version)
+            scan_policy = expression_filter_policy(bs, supports_expressions)
             logging.info("Checking for records of compressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts, nodename=node)
         else:
             logging.info("Node {0} does not have compression enabled.".format(node))
             bs = compression_ratios[node]["wbs"] - 16
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
-            scan_policy = {
-                "expressions": too_big_exp
-            }
+            server_version = get_server_version(node)
+            supports_expressions = server_supports_expressions(server_version)
+            scan_policy = expression_filter_policy(bs, supports_expressions)
             logging.info("Checking for records of compressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts,  nodename=node)
 except ex.InvalidNodeError:
