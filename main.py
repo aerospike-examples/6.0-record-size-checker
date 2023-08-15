@@ -95,8 +95,7 @@ for node, config in namespace_stats.items():
         if "max-record-size" in match:
             mrs = int(match.split('=')[1])
             if mrs != (compression_ratios[node]["wbs"] - 16) and not dry_run:
-                logging.warning("max-record-size is not set to (write-block-size - 16 bytes) for node {0} (write-block-size: {1}, max-record-size: 
-{2})".format(node, compression_ratios[node]["wbs"], mrs))
+                logging.warning("max-record-size is not set to (write-block-size - 16 bytes) for node {0} (write-block-size: {1}, max-record-size: {2})".format(node, compression_ratios[node]["wbs"], mrs))
                 logging.warning("max-record-size needs to be configured to successfully identify potential large records.")
                 exit(3)
             compression_ratios[node]["max-record-size"] = mrs
