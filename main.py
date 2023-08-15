@@ -6,12 +6,12 @@ from aerospike import exception as ex
 import logging
 
 # Define globals
-namespace = "test"
+namespace = "bar"
 # If setName is an empty string then it will default to scanning all sets in the namespace
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
 threshold = 0.10
-host = "host.docker.internal"
+host = "127.0.0.1"
 port = 3000
 # log level - Default INFO
 # change to logging.DEBUG for more verbose logging
@@ -126,7 +126,7 @@ scan_opts = {
 }
 
 def get_server_version(node_name):
-    versioninfo = client.info_random_node("build")
+    versioninfo = client.info_single_node("build", node_name)
     version_str = versioninfo.strip("build\t \n")
     versionlist = version_str.split(".")
     major = int(versionlist[0])
@@ -142,9 +142,7 @@ def server_supports_expressions(server_version):
     return res
 
 def expression_filter_policy(bs, use_expressions):
-    too_big_exp = None
     policy = dict()
-
     if use_expressions:
         too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
         policy["expressions"] = too_big_exp
