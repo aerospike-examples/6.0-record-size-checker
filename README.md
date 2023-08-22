@@ -43,7 +43,7 @@ Execute the python script:
 python3 main.py
 ```
 
-## Running on Servers 4.9-5.2
+## Support for Servers 4.9-5.2
 Clone the repo and checkout the predexp-pre-5.2 branch
 ```bash
 git clone https://github.com/aerospike-examples/6.0-record-size-checker.git
