@@ -5,7 +5,7 @@ from aerospike import exception as ex
 import logging
 
 # Define globals
-namespace = "bar"
+namespace = "test"
 # If setName is an empty string then it will default to scanning all sets in the namespace
 setName = ""
 # threshold for compression ratio variance (Default: 10%)
@@ -29,7 +29,7 @@ config = {
         'auth_mode': aerospike.AUTH_INTERNAL
     },
     # Change the below to True if needing to use alternate-access-address
-    'use_services_alternate': True
+    'use_services_alternate': False
 }
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logLevel)
@@ -123,11 +123,25 @@ scan_opts = {
     'nobins': True
 }
 
+def get_server_version(node_name):
+    versioninfo = client.info_single_node("build", node_name)
+    version_str = versioninfo.strip("build\t \n")
+    versionlist = version_str.split(".")
+    major = int(versionlist[0])
+    minor = int(versionlist[1])
+    logging.info("Node {0} running Aerospike server version: {1}.{2}".format(node_name, major, minor))
+    return (major, minor)
+
 
 try:
     for node in list(compression_ratios.keys()):
         current_node = node
         logging.info("Scanning node: {0}".format(node))
+        server_version = get_server_version(node)
+        if server_version >= (6, 0):
+            logging.info("Skipping oversized record scan for node: {0} running Aerospike version 6.0 or newer, detected version: {1}".format(node, server_version))
+            continue
+
         if compression_ratios[node]["isCompressionEnabled"] == True:
             logging.info("Node {0} has compression enabled with a ratio of {1} and write-block-size={2}".format(node, compression_ratios[node]["compression_ratio"], compression_ratios[node]["wbs"]))
             # Calculate rough threshold for compressed records that may exceed write-block-size
@@ -147,8 +161,8 @@ try:
             }
             logging.info("Checking for records of compressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts,  nodename=node)
-except ex.InvalidNodeError:
-    logging.error("Unable to scan node {0} because it's not active. Is it quiesced?".format(node))
+except ex.InvalidNodeError as e:
+    logging.error("Unable to scan node {0} because it's not active. Is it quiesced? {1}".format(node, e))
 except Exception as e:
     logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
 

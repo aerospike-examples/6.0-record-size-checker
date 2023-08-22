@@ -43,6 +43,27 @@ Execute the python script:
 python3 main.py
 ```
 
+## Running on Servers 4.9-5.2
+Clone the repo and checkout the predexp-pre-5.2 branch
+```bash
+git clone https://github.com/aerospike-examples/6.0-record-size-checker.git
+cd 6.0-record-size-checker
+git checkout predexp-pre-5.2
+```
+Ensure version 6.1.2 of the [aerospike-client-python](https://github.com/aerospike/aerospike-client-python) library is installed:
+```bash
+pip3 install -r requirements.txt
+```
+
+> [!NOTE]
+> Aerospike Python client 6.1.2 only runs on amd64 CPUs and Python 3.6 through 3.9.
+
+
+Execute the python script:
+```bash
+python3 main.py
+```
+
 ## Example Output
 When running with `dry_run = True` the script will print out the record metadata including the digest. 
 ```bash
