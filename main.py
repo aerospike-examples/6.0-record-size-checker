@@ -182,7 +182,7 @@ try:
             scan_policy = expression_filter_policy(bs, supports_expressions)
             logging.info("Checking for records of compressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts,  nodename=node)
-except ex.InvalidNodeError:
+except ex.InvalidNodeError as e:
     logging.error("Unable to scan node {0} because it's not active. Is it quiesced? {1}".format(node, e))
 except Exception as e:
     logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
