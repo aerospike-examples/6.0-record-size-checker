@@ -55,7 +55,7 @@ def display_key(rec):
     try:
         # if dry_run is True it will only return the digests and object count at the end. Will NOT touch the records
         if not dry_run:
-            client.touch(k,0)
+            client.touch(k,-2)
         else:
             logging.info("Namespace: {0}, Set: {1}, Primary Key: {2}, Digest: {3}".format(ns, setname, pk, digest))
     except ex.AerospikeError as e:
@@ -146,7 +146,7 @@ try:
             logging.info("Node {0} has compression enabled with a ratio of {1} and write-block-size={2}".format(node, compression_ratios[node]["compression_ratio"], compression_ratios[node]["wbs"]))
             # Calculate rough threshold for compressed records that may exceed write-block-size
             bs = (compression_ratios[node]["wbs"] * compression_ratios[node]["compression_ratio"]) - (compression_ratios[node]["wbs"] * threshold)
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
+            too_big_exp = exp.GT(exp.DeviceSize(), int(bs)).compile()
             scan_policy = {
                 "expressions": too_big_exp
             }
@@ -155,7 +155,7 @@ try:
         else:
             logging.info("Node {0} does not have compression enabled.".format(node))
             bs = compression_ratios[node]["wbs"] - 16
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
+            too_big_exp = exp.GT(exp.DeviceSize(), int(bs)).compile()
             scan_policy = {
                 "expressions": too_big_exp
             }
