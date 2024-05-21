@@ -132,9 +132,8 @@ def get_server_version(node_name):
     logging.info("Node {0} running Aerospike server version: {1}.{2}".format(node_name, major, minor))
     return (major, minor)
 
-
-try:
-    for node in list(compression_ratios.keys()):
+for node in list(compression_ratios.keys()):
+    try:
         current_node = node
         logging.info("Scanning node: {0}".format(node))
         server_version = get_server_version(node)
@@ -146,7 +145,7 @@ try:
             logging.info("Node {0} has compression enabled with a ratio of {1} and write-block-size={2}".format(node, compression_ratios[node]["compression_ratio"], compression_ratios[node]["wbs"]))
             # Calculate rough threshold for compressed records that may exceed write-block-size
             bs = (compression_ratios[node]["wbs"] * compression_ratios[node]["compression_ratio"]) - (compression_ratios[node]["wbs"] * threshold)
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
+            too_big_exp = exp.GT(exp.DeviceSize(), int(bs)).compile()
             scan_policy = {
                 "expressions": too_big_exp
             }
@@ -155,16 +154,16 @@ try:
         else:
             logging.info("Node {0} does not have compression enabled.".format(node))
             bs = compression_ratios[node]["wbs"] - 16
-            too_big_exp = exp.GE(exp.DeviceSize(), int(bs)).compile()
+            too_big_exp = exp.GT(exp.DeviceSize(), int(bs)).compile()
             scan_policy = {
                 "expressions": too_big_exp
             }
             logging.info("Checking for records of uncompressed size larger than {0} bytes".format(int(bs)))
             scan.foreach(display_key, policy=scan_policy, options=scan_opts,  nodename=node)
-except ex.InvalidNodeError as e:
-    logging.error("Unable to scan node {0} because it's not active. Is it quiesced? {1}".format(node, e))
-except Exception as e:
-    logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
+    except ex.InvalidNodeError as e:
+        logging.error("Unable to scan node {0} because it's not active. Is it quiesced? {1}".format(node, e))
+    except Exception as e:
+        logging.error("Unable to perform scan on node {0}: {1}".format(node,e))
 
 
 
