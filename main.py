@@ -55,7 +55,7 @@ def display_key(rec):
     try:
         # if dry_run is True it will only return the digests and object count at the end. Will NOT touch the records
         if not dry_run:
-            client.touch(k,0)
+            client.touch(k,-2)
         else:
             logging.info("Namespace: {0}, Set: {1}, Primary Key: {2}, Digest: {3}".format(ns, setname, pk, digest))
     except ex.AerospikeError as e:
